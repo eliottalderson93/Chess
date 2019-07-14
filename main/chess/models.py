@@ -19,7 +19,15 @@ class Board:
 					new_space = Space(i,k)	
 				row.append(new_space)
 			self.__grid.append(row)
+		self.__init_neighbors()
 		self._positions = self.positions()
+		print(self)
+
+	def __init_neighbors(self):
+		for i, row in enumerate(self.__grid): #rows = north/south south++
+			for k, space in enumerate(row): #cols = east/west east++
+				if space != None:
+					space._set_neighbors(self.__grid[i-1][k],self.__grid[i-1][k+1],self.__grid[i][k+1],self.__grid[i+1][k+1],self.__grid[i+1][k],self.__grid[i+1][k-1],self.__grid[i][k-1],self.__grid[i-1][k-1]) #N,NE,E,SE,S,SW,W,NW
 
 	def __repr__(self):
 		begin = "____________________\n"
@@ -52,6 +60,9 @@ class Board:
 			return None
 		return self.__grid[y][x].occupied
 
+	def get_positions(Self):
+		return self._positions
+
 	def positions(self): #returns a dictionary with the positions of all pieces : used for permanence
 		b_pawn_list = []
 		b_knight_list = []
@@ -75,26 +86,26 @@ class Board:
 								b_pawn_list.append(space.label())
 							elif space.piece._isKing:
 								b_King = space.label()
-							elif space.piece.name == "Bishop":
+							elif space.piece.get_name() == "Bishop":
 								b_bishop_list.append(space.label())
-							elif space.piece.name == "Knight":
+							elif space.piece._name == "Knight":
 								b_knight_list.append(space.label())
-							elif space.piece.name == "Rook":
+							elif space.piece.get_name() == "Rook":
 								b_rook_list.append(space.label())
-							elif space.piece.name == "Queen":
+							elif space.piece.get_name() == "Queen":
 								b_queen_list.append(space.label())
 						elif space.piece.get_color() == 1:
 							if space.piece._isPawn:
 								w_pawn_list.append(space.label())
 							elif space.piece._isKing:
 								w_King = space.label()
-							elif space.piece.name == "Bishop":
+							elif space.piece.get_name() == "Bishop":
 								w_bishop_list.append(space.label())
-							elif space.piece.name == "Knight":
+							elif space.piece.get_name() == "Knight":
 								w_knight_list.append(space.label())
-							elif space.piece.name == "Rook":
+							elif space.piece.get_name() == "Rook":
 								w_rook_list.append(space.label())
-							elif space.piece.name == "Queen":
+							elif space.piece.get_name() == "Queen":
 								w_queen_list.append(space.label())
 		positions = {
 			"Black" : {
@@ -114,25 +125,38 @@ class Board:
 				"king" : w_King				
 			}
 		}
-		return positions
+		self._positions = positions
+		return self._positions
 
 
 class Space:
 	def __init__(self,x,y):
 		self.__x = x
 		self.__y = y
-		self.__number = y #labels for the space
+		self.__number = [8,7,6,5,4,3,2,1][x-1] #labels for the space
 		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__y-1)%8)]
 		self.occupied = False #is a piece here?
 		self.piece = None #names the Piece object occupying it
 		self.__color = self.colorize(self.__x,self.__y) #0 means black, 1 means white
+		self.__neighbors = {"north" : None,"north-east": None,"east":None,"south-east":None,"south" : None,"south-west":None,"west":None,"north-west":None}
+		self.isThreatened = 0
 
 	def __repr__(self):
-		# if self.piece == None:
-		# 	return "0|"
-		# else:
-		# 	return self.piece.__repr__()
-		return self.label() + '|' + str(self.get_color()) + '|'
+		if self.piece == None:
+			return "0|"
+		else:
+			return self.piece.__repr__()
+		#return self.label() + '|' + str(self.get_color()) + '|'
+
+	def _set_neighbors(self,N,NE,E,SE,S,SW,W,NW):
+		self.__neighbors["north"] = N
+		self.__neighbors["north-east"] = NE
+		self.__neighbors["east"] = E
+		self.__neighbors["south-east"] = SE
+		self.__neighbors["south"] = S
+		self.__neighbors["south-west"] = SW
+		self.__neighbors["west"] = W
+		self.__neighbors["north-west"] = NW
 
 	def colorize(self,x,y):
 		if x%2 == 1:
@@ -158,6 +182,9 @@ class Space:
 
 	def get_color(self):
 		return self.__color
+
+	def get_neighbors(Self):
+		return self.__neighbors
 
 class Piece:
 	def __init__(self,x,y,Board):
@@ -463,19 +490,32 @@ class Game():
 	#establishing permanence of a game using the explicit model methods
 	def __db_init(self):
 		#TODO add read method to check if this game is already in the database
-		self._turns_db = [] 	
-		self._game_db = savedGame.objects.create(numTurns = self._num_turns,whoseTurn = True).save() #True = White, False = Black
-		self._player1_db = savedPlayer.objects.create(color = self._player_one.get_color(),Game = self._game_db).save() #White
-		self._player2_db = savedPlayer.objects.create(color = self._player_two.get_color(),Game = self._game_db).save() #Black
+		self._white_turns_db = []
+		self._black_turns_db = []
+		self._game_db = savedGame.objects.create(numTurns = self._num_turns,whoseTurn = True) #True = White, False = Black
+		self._game_db.save()
+		self._player1_db = savedPlayer.objects.create(color = self._player_one.get_color(),Game = self._game_db) #White
+		self._player2_db = savedPlayer.objects.create(color = self._player_two.get_color(),Game = self._game_db) #Black
+		self._player1_db.save()
+		self._player2_db.save()
 		myPositions = self.__board.positions()
-		self._white_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king']).save())
-		self._black_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king']).save())
-	
+		whiteTurn = Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king'])
+		blackTurn = Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king'])
+		whiteTurn.save()
+		blackTurn.save()
+		self._white_turns_db.append(whiteTurn)
+		self._black_turns_db.append(blackTurn)
+
+
 	def _turn(self):
 		self._num_turns += 1
 		myPositions = self.__board.positions()
-		self._white_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king']).save())
-		self._black_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king']).save())
+		whiteTurn = Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king'])
+		blackTurn = Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king'])
+		whiteTurn.save()
+		blackTurn.save()
+		self._white_turns_db.append(whiteTurn)
+		self._black_turns_db.append(blackTurn)
 
 #permanent objects 
 #the saved data constitutes what we need to rebuild a game if a user went away or closed the browser
