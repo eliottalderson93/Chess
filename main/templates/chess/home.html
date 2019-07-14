@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang = "en">
+<head>
+	<title>Chess in Python</title>
+	{% load static %}
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="{% static 'chess/bulma.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'chess/main.css' %}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="{% static 'chess/main.js' %}"></script>
+</head>
+<body class = backgroundGray>
+	<section class = "hero">
+		<div class = "hero-body">
+			<div class = "container">
+				<h1 class = "title" style = "color:rgb(50,205,50)">Chess in Python/Django by Erik Nordland</h1>
+					{% for row in Grid %}
+						{% if row.1 != None %}
+							<div class = "chessRow">
+								{% for space in row %}
+									{% if space != None %}
+										{% if space.get_color == 1 %}
+											<div class = "chessSquare whiteSpace" id = "{{space.label}}">
+												{% if space.piece != None %}
+													{% if space.piece.get_color == 1%}
+													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece">
+															<img src = "{% static thisPieceImg %}">
+														</figure>
+													{% endwith %}
+													{% endif %}
+													{% if space.piece.get_color == 0 %}
+													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece">
+															<img src = "{% static thisPieceImg %}">
+														</figure>
+													{% endwith %}
+													{% endif %}
+												{% endif %}
+											</div>
+										{% else %}
+											<div class = "chessSquare blackSpace">
+												{% if space.piece != None %}
+													{% if space.piece.get_color == 1%}
+													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg  %}
+														<figure class = "image piece">
+															<img src = "{% static thisPieceImg %}">
+														</figure>
+													{% endwith %}
+													{% endif %}
+													{% if space.piece.get_color == 0 %}
+													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece">
+															<img src = "{% static thisPieceImg %}">
+														</figure>
+													{% endwith %}
+													{% endif %}
+												{% endif %}
+											</div>
+										{% endif %}
+									{% endif %}
+								{% endfor %}
+							</div>
+						{% endif %}
+					{% endfor %}
+			</div>
+		</div>
+	</section>
+</body>
+</html>

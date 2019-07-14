@@ -1,3 +1,4 @@
 *.pyc
 migrations
-
+env.py
+admin

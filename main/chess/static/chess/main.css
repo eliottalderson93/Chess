@@ -1,0 +1,45 @@
+.whiteSpace{
+	background-color:rgb(245,222,179);
+}
+.blackSpace{
+	background-color:rgb(139,69,19);
+	display:inline-block;
+}
+.chessSquare {
+  	width:7%;
+	margin:0px;
+	padding:0%;
+	border:0px;
+	display:inline-block;
+	padding-top:0.5%;
+	padding-left:0.5%;
+}
+.backgroundGray{
+	background-color:rgb(105,105,105);
+}
+.chessSquare:after {
+  content: "";
+  display: inline-block;
+  padding-bottom: 100%;
+}
+.chessRow{
+	display:block;
+	width:80%;
+	margin:0px;
+	font-size:0px;
+}
+.chessRow > div {
+	font-size: 1rem; 
+	display: inline-block; 
+}
+.chessBoard{
+	display:block;
+	width:800px;
+	height:800px;
+}
+.piece {
+  position: absolute;
+  width: 5%;
+  margin:auto;
+
+}

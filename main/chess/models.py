@@ -1,5 +1,10 @@
 from django.db import models
+from django.contrib.postgres.fields import ArrayField
+#models are on the bottom, the normal classes are for drawing the chess board and pieces
+#as well as calculating the next move on the server side
+#the models are for giving permanence to the chess board
 
+#server objects that are exposed on the client to build the DOM and give logic to the game
 class Board:
 	def __init__(self):
 		self.__grid = []
@@ -14,6 +19,7 @@ class Board:
 					new_space = Space(i,k)	
 				row.append(new_space)
 			self.__grid.append(row)
+		self._positions = self.positions()
 
 	def __repr__(self):
 		begin = "____________________\n"
@@ -29,6 +35,7 @@ class Board:
 
 		end = "____________________\n"
 		return begin + endstr + end
+
 	def get_grid(self):
 		return self.__grid
 
@@ -44,67 +51,91 @@ class Board:
 		if not 1<=y<=8:
 			return None
 		return self.__grid[y][x].occupied
-	#TODO fix triple pipes and extra --- line
-	def draw_grid(self):
-		row_string = ""
-		for y in range(20):
-			for x in range(10):
-				y_coord = int(y/2)
-				add_to_rs = ''
-				space_here = self.get_grid()[x][y_coord]
 
-				if space_here == None:
-					boundary_flag = False
-				else:
-					boundary_flag = True
+	def positions(self): #returns a dictionary with the positions of all pieces : used for permanence
+		b_pawn_list = []
+		b_knight_list = []
+		b_bishop_list = []
+		b_rook_list = []
+		b_queen_list = []
+		b_King = ""
 
-				if y%2 == 0 and boundary_flag and not y == 0:
-					add_to_rs = '--' #draw horiz borders between rows
-					if x == 9:
-						add_to_rs += '|'
-				elif boundary_flag:
-					#empty spaces (0) and pieces (P,Kn,B,R,Q,Ki) with vertical boundaries between
-					#print("boundary: ",space_here, ":",type(space_here),":",space_here == None,":",boundary_flag,":",space_here.piece == None)
-					if space_here.piece == None:
-						add_to_rs = '0|'
-						if x == 9:
-							add_to_rs += '|'
-					else:
-						add_to_rs = space_here.piece.get_name()[0] + space_here.piece.get_name()[1]
-						if add_to_rs[0] != 'K':
-							add_to_rs = add_to_rs[0] #Ki = King, Kn = Knight, Q = Queen, B = Bishop, P = Pawn, R = Rook
-						add_to_rs += '|'			
-				else: #draw boundaries
-					if y == 0:
-						add_to_rs = '=='
-					elif y == 19:
-						add_to_rs = '=='
-					if x == 0 and not y == 19:
-						add_to_rs = '||'
-					elif x == 9 and not y == 19:
-						add_to_rs = '|'
-				row_string += add_to_rs
-			row_string += "\n"
-		print(row_string)
+		w_pawn_list = []
+		w_knight_list = []
+		w_bishop_list = []
+		w_rook_list = []
+		w_queen_list = []
+		w_King = ""
+		for row in self.__grid: #iterate through the board and find the space-labels of where all the pieces are
+			for space in row:
+				if space != None:
+					if space.piece != None:
+						if space.piece.get_color() == 0:
+							if space.piece._isPawn:
+								b_pawn_list.append(space.label())
+							elif space.piece._isKing:
+								b_King = space.label()
+							elif space.piece.name == "Bishop":
+								b_bishop_list.append(space.label())
+							elif space.piece.name == "Knight":
+								b_knight_list.append(space.label())
+							elif space.piece.name == "Rook":
+								b_rook_list.append(space.label())
+							elif space.piece.name == "Queen":
+								b_queen_list.append(space.label())
+						elif space.piece.get_color() == 1:
+							if space.piece._isPawn:
+								w_pawn_list.append(space.label())
+							elif space.piece._isKing:
+								w_King = space.label()
+							elif space.piece.name == "Bishop":
+								w_bishop_list.append(space.label())
+							elif space.piece.name == "Knight":
+								w_knight_list.append(space.label())
+							elif space.piece.name == "Rook":
+								w_rook_list.append(space.label())
+							elif space.piece.name == "Queen":
+								w_queen_list.append(space.label())
+		positions = {
+			"Black" : {
+				"pawns" : b_pawn_list,
+				"knights" : b_knight_list,
+				"bishops" : b_bishop_list,
+				"rooks" : b_rook_list,
+				"queens" : b_queen_list,
+				"king" : b_King
+			},
+			"White" : {
+				"pawns" : w_pawn_list,
+				"knights" : w_knight_list,
+				"bishops" : w_bishop_list,
+				"rooks" : w_rook_list,
+				"queens" : w_queen_list,
+				"king" : w_King				
+			}
+		}
+		return positions
+
 
 class Space:
 	def __init__(self,x,y):
 		self.__x = x
 		self.__y = y
 		self.__number = y #labels for the space
-		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__x-1)%8)]
+		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__y-1)%8)]
 		self.occupied = False #is a piece here?
 		self.piece = None #names the Piece object occupying it
 		self.__color = self.colorize(self.__x,self.__y) #0 means black, 1 means white
 
 	def __repr__(self):
-		if self.piece == None:
-			return "0|"
-		else:
-			return self.piece.__repr__()
+		# if self.piece == None:
+		# 	return "0|"
+		# else:
+		# 	return self.piece.__repr__()
+		return self.label() + '|' + str(self.get_color()) + '|'
 
 	def colorize(self,x,y):
-		if x%2 == 0:
+		if x%2 == 1:
 			if y%2 == 0:
 				return 0
 			else:
@@ -193,6 +224,11 @@ class Piece:
 						self._vectors = {"north" : [[self.space.get_x(),self.space.get_y()+1]]}
 				elif num_moves == 1:
 					pass #rules for en-passant go here once movement is figured out
+			elif self._isKing:
+				#Kings cannot move to any threatened space, also castling
+				if num_moves > 0:
+					pass
+
 		return self
 
 	def move(self,Board):
@@ -226,7 +262,12 @@ class King(Piece):
 							"south-west" : [[self.space.get_x()-1,self.space.get_y()-1]],
 							"west" 	: [[self.space.get_x()-1,self.space.get_y()]],
 							"north-west" : [[self.space.get_x()-1,self.space.get_y()+1]]
-						} 
+						}
+		#castling possibilities
+		if self._color == 0: #black
+			pass
+		else:
+			pass
 
 class Queen(Piece):
 	def __init__(self,x,y,Board):
@@ -332,72 +373,78 @@ class Rook(Piece):
 			self.__possible_moves.append([self.space.get_x(),self.space.get_y()+i])
 			self._vectors["north"].append([self.space.get_x(),self.space.get_y()+i])
 
-class Player:
-	def __init__(self,color,Board):
-		self.current_pieces = []
-		self.captured_pieces = [] #other player's pieces
-		if color%2 == 0:#white
-			self.__color = 1
-			for i in range(8):
-				newPawn = Pawn(i+1,2,Board)
-				newPawn.set_color(self.__color)
-				self.current_pieces.append(newPawn)
-				if i == 0 or i == 7:
-					newRook = Rook(i+1,1,Board)
-					newRook.set_color(self.__color)
-					self.current_pieces.append(newRook)
-				elif i == 1 or i == 6:
-					newKnight = Knight(i+1,1,Board)
-					newKnight.set_color(self.__color)
-					self.current_pieces.append(newKnight)
-				elif i == 2 or i == 5:
-					newBishop = Bishop(i+1,1,Board)
-					newBishop.set_color(self.__color)
-					self.current_pieces.append(newBishop)
-				elif i == 3:
-					newQueen = Queen(i+1,1,Board)
-					newQueen.set_color(self.__color)
-					self.current_pieces.append(newQueen)
-				else: #i == 4
-					newKing = King(i+1,1,Board)
-					newKing.set_color(self.__color)
-					self.current_pieces.append(newKing)
-		else: #black
-			self.__color = 0
-			for i in range(8):
-				newPawn = Pawn(i+1,7,Board)
-				newPawn.set_color(self.__color)
-				self.current_pieces.append(newPawn)
-				if i == 0 or i == 7:
-					newRook = Rook(i+1,8,Board)
-					newRook.set_color(self.__color)
-					self.current_pieces.append(newRook)
-				elif i == 1 or i == 6:
-					newKnight = Knight(i+1,8,Board)
-					newKnight.set_color(self.__color)
-					self.current_pieces.append(newKnight)
-				elif i == 2 or i == 5:
-					newBishop = Bishop(i+1,8,Board)
-					newBishop.set_color(self.__color)
-					self.current_pieces.append(newBishop)
-				elif i == 4:
-					newQueen = Queen(i+1,8,Board)
-					newQueen.set_color(self.__color)
-					self.current_pieces.append(newQueen)
-				else: #i == 3
-					newKing = King(i+1,8,Board)
-					newKing.set_color(self.__color)
-					self.current_pieces.append(newKing)
-	
+class Player():
+	def __init__(self,color,Board,begin=True):
+		if begin: #default initialization at turn 0
+			self.current_pieces = []
+			self.captured_pieces = [] #other player's pieces
+			if color%2 == 0:#white
+				self.__color = 1
+				for i in range(8):
+					newPawn = Pawn(i+1,2,Board)
+					newPawn.set_color(self.__color)
+					self.current_pieces.append(newPawn)
+					if i == 0 or i == 7:
+						newRook = Rook(i+1,1,Board)
+						newRook.set_color(self.__color)
+						self.current_pieces.append(newRook)
+					elif i == 1 or i == 6:
+						newKnight = Knight(i+1,1,Board)
+						newKnight.set_color(self.__color)
+						self.current_pieces.append(newKnight)
+					elif i == 2 or i == 5:
+						newBishop = Bishop(i+1,1,Board)
+						newBishop.set_color(self.__color)
+						self.current_pieces.append(newBishop)
+					elif i == 3:
+						newQueen = Queen(i+1,1,Board)
+						newQueen.set_color(self.__color)
+						self.current_pieces.append(newQueen)
+					else: #i == 4
+						newKing = King(i+1,1,Board)
+						newKing.set_color(self.__color)
+						self.current_pieces.append(newKing)
+			else: #black
+				self.__color = 0
+				for i in range(8):
+					newPawn = Pawn(i+1,7,Board)
+					newPawn.set_color(self.__color)
+					self.current_pieces.append(newPawn)
+					if i == 0 or i == 7:
+						newRook = Rook(i+1,8,Board)
+						newRook.set_color(self.__color)
+						self.current_pieces.append(newRook)
+					elif i == 1 or i == 6:
+						newKnight = Knight(i+1,8,Board)
+						newKnight.set_color(self.__color)
+						self.current_pieces.append(newKnight)
+					elif i == 2 or i == 5:
+						newBishop = Bishop(i+1,8,Board)
+						newBishop.set_color(self.__color)
+						self.current_pieces.append(newBishop)
+					elif i == 4:
+						newQueen = Queen(i+1,8,Board)
+						newQueen.set_color(self.__color)
+						self.current_pieces.append(newQueen)
+					else: #i == 3
+						newKing = King(i+1,8,Board)
+						newKing.set_color(self.__color)
+						self.current_pieces.append(newKing)
+		else: #it is not turn 0 so get positions from the Board
+			pass
+
 	def get_color(self):
 		return self.__color
 			
 	#TODO add capture method, transfer pieces between arrays
-class Game:
+class Game():
 	def __init__(self):
 		self.__board = Board()
 		self._player_one = Player(1,self.__board) #white
 		self._player_two = Player(2,self.__board) #black
+		self._num_turns = 0
+		self._turns = [self.__board.positions()]
+		self.__db_init()
 
 	def __repr__(self):
 		return self.__board.__repr__()
@@ -411,17 +458,54 @@ class Game:
 	def get_p2(self):
 		return self._player_two
 
-# test = Board()
-# player1 = Player(1,test)
-# player2 = Player(2,test)
-# printarr = []
-# for row in test.get_grid():
-# 	printarr.append(row)
-# 	for space in row:
-# 		if space != None:			
-# 			if space.piece != None:
-# 				print("[",space.get_x(),",",space.get_y(),"] : ",space.label()," : ",space.get_color()," : ",space.piece.get_name(),' : ',space.piece.get_color())
-# 			# 	if space.piece.get_name() == "Queen":
-# 			# 		print(space.piece.get_color(),":",space.piece.get_possible_moves())
-# for flip in printarr:
-# 	print(flip)
+	def get_num_turns(self):
+		return self._num_turns
+	#establishing permanence of a game using the explicit model methods
+	def __db_init(self):
+		#TODO add read method to check if this game is already in the database
+		self._turns_db = [] 	
+		self._game_db = savedGame.objects.create(numTurns = self._num_turns,whoseTurn = True).save() #True = White, False = Black
+		self._player1_db = savedPlayer.objects.create(color = self._player_one.get_color(),Game = self._game_db).save() #White
+		self._player2_db = savedPlayer.objects.create(color = self._player_two.get_color(),Game = self._game_db).save() #Black
+		myPositions = self.__board.positions()
+		self._white_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king']).save())
+		self._black_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king']).save())
+	
+	def _turn(self):
+		self._num_turns += 1
+		myPositions = self.__board.positions()
+		self._white_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['White']['pawns'], knights = myPositions['White']['knights'], bishops = myPositions['White']['bishops'], rooks = myPositions['White']['rooks'], queens = myPositions['White']['queens'], king = myPositions['White']['king']).save())
+		self._black_turns_db.append(Turn.objects.create(Player = self._player1_db, pawns = myPositions['Black']['pawns'], knights = myPositions['Black']['knights'], bishops = myPositions['Black']['bishops'], rooks = myPositions['Black']['rooks'], queens = myPositions['Black']['queens'], king = myPositions['Black']['king']).save())
+
+#permanent objects 
+#the saved data constitutes what we need to rebuild a game if a user went away or closed the browser
+#There is a table of Games. Games have many Players (Generally 2). Games have the number of Turns (each Turn composed of each player moving once) and whose turn it is.
+#Players have many Turns. Players have a color (white or black). Players have a number of Turns that they have moved.0
+#Turns have entries with the piece names and a list of the positions each piece is in.
+
+class savedGame(models.Model):
+	numTurns = models.IntegerField(default = 0)
+	whoseTurn = models.BooleanField(default = True) #True = White, False = Black
+
+class savedPlayer(models.Model):
+	color = models.IntegerField() #0 for black, 1 for white
+	Game = models.ForeignKey('savedGame',on_delete=models.CASCADE)
+
+class Turn(models.Model): #takes a server Board function object to create a current layout of the board
+	Player = models.ForeignKey('savedPlayer',on_delete=models.CASCADE)
+	pawns = ArrayField(
+		models.CharField(max_length = 2,blank = True), size=8 #[a4,b6,d5,....]
+		)
+	knights = ArrayField(
+		models.CharField(max_length = 2,blank = True), size=10
+		)
+	bishops = ArrayField(
+		models.CharField(max_length = 2, blank = True), size= 10
+		)
+	rooks = ArrayField(
+		models.CharField(max_length = 2, blank = True), size= 10
+		)
+	queens = ArrayField(
+		models.CharField(max_length = 2, blank = True), size= 10
+		)
+	king = models.CharField(max_length = 2, blank = True) #ie a1 or h1
