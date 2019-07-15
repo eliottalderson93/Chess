@@ -28,14 +28,14 @@
 												<!-- <p class = "rowLabel blackColor">{{space.label.1}} </p> -->
 												{% endif %}
 												{% if space.piece != None %}
-													{% if space.piece.get_color == 1%}
+													{% if space.piece.get_color == 0%}
 													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg %}
 														<figure class = "image piece" id = "piece.get_name">
 															<img src = "{% static thisPieceImg %}">
 														</figure>
 													{% endwith %}
 													{% endif %}
-													{% if space.piece.get_color == 0 %}
+													{% if space.piece.get_color == 1 %}
 													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
 														<figure class = "image piece" id = "piece.get_name">
 															<img src = "{% static thisPieceImg %}">
@@ -53,14 +53,14 @@
 												<!-- <p class = "rowLabel whiteColor">{{space.label.1}} </p> -->
 												{% endif %}
 												{% if space.piece != None %}
-													{% if space.piece.get_color == 1%}
+													{% if space.piece.get_color == 0%}
 													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg  %}
 														<figure class = "image piece" id = "piece.get_name">
 															<img src = "{% static thisPieceImg %}">
 														</figure>
 													{% endwith %}
 													{% endif %}
-													{% if space.piece.get_color == 0 %}
+													{% if space.piece.get_color == 1 %}
 													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
 														<figure class = "image piece" id = "piece.get_name">
 															<img src = "{% static thisPieceImg %}">

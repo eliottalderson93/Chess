@@ -14,6 +14,7 @@ def home(request):
 			"P2" : theGame.get_p2(),
 			"Grid" : theGame.get_board().get_grid()
 		}
+	print('game: ',theGame)
 	myRender = render(request,"chess/home.html", context)
 	#else:
 		# #there is a game in session

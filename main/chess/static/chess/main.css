@@ -11,9 +11,8 @@
 	padding:0%;
 	border:0px;
 	display:inline-block;
-	padding-top:0.5%;
-	padding-left:0.5%;
-	z-index:100
+	padding-top:0%;
+	padding-left:0%;
 }
 .backgroundGray{
 	background-color:rgb(105,105,105);
@@ -40,16 +39,14 @@
 }
 .piece {
   position:absolute;
-  width: 5%;
+  width: 100%;
   margin:auto;
-  z-index:300;
 }
 .rowLabel{
 	position:absolute;
 	width:0.5%;
 	top:0;
 	left:0;
-	z-index:200;
 	display:none;
 	/* disabled need to fix and make it not alter document flow*/
 }
@@ -58,7 +55,6 @@
 	width:0.5%;
 	bottom:0;
 	right:0;
-	z-index:200;
 	display:none; 
 	/* disabled need to fix and make it not alter document flow*/
 }

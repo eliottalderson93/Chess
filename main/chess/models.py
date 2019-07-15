@@ -20,8 +20,7 @@ class Board:
 				row.append(new_space)
 			self.__grid.append(row)
 		self.__init_neighbors()
-		self._positions = self.positions()
-		print(self)
+		self._positions = {"" : {"" : [] }}
 
 	def __init_neighbors(self):
 		for i, row in enumerate(self.__grid): #rows = north/south south++
@@ -48,10 +47,25 @@ class Board:
 		return self.__grid
 
 	def get_Space(self,x,y):
+		if not 1<=x<=8:
+			return None
+		if not 1<=y<=8:
+			return None
 		return self.__grid[y][x]
 
-	def get_Space_label(self,label):
-		return 0
+	def get_Space_by_label(self,label):
+		check_letter = ['a','b','c','d','e','f','g','h']
+		check_num = ["1","2","3","4","5","6","7","8"]
+		index = [None,None]
+		if len(label) != 2:
+			return None
+		for i in range(len(check_letter)):
+			if label[0] == check_letter[i]:
+				for k in range(len(check_num)):
+					if label[1] == check_num[k]:
+						return get_Space(self,int(check_num[k]),i+1)
+		return None
+
 
 	def is_occupied(self,x,y):
 		if not 1<=x<=8:
@@ -60,7 +74,7 @@ class Board:
 			return None
 		return self.__grid[y][x].occupied
 
-	def get_positions(Self):
+	def get_positions(self):
 		return self._positions
 
 	def positions(self): #returns a dictionary with the positions of all pieces : used for permanence
@@ -82,6 +96,7 @@ class Board:
 				if space != None:
 					if space.piece != None:
 						if space.piece.get_color() == 0:
+							print(space.label(),":",space.piece._isPawn,":",space.piece.get_name(),':',space.piece.get_color())
 							if space.piece._isPawn:
 								b_pawn_list.append(space.label())
 							elif space.piece._isKing:
@@ -95,6 +110,7 @@ class Board:
 							elif space.piece.get_name() == "Queen":
 								b_queen_list.append(space.label())
 						elif space.piece.get_color() == 1:
+							print(space.label(),":",space.piece._isPawn,":",space.piece.get_name())
 							if space.piece._isPawn:
 								w_pawn_list.append(space.label())
 							elif space.piece._isKing:
@@ -133,20 +149,20 @@ class Space:
 	def __init__(self,x,y):
 		self.__x = x
 		self.__y = y
-		self.__number = [8,7,6,5,4,3,2,1][x-1] #labels for the space
+		self.__number = [8,7,6,5,4,3,2,1][self.__x-1] #labels for the space
 		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__y-1)%8)]
 		self.occupied = False #is a piece here?
 		self.piece = None #names the Piece object occupying it
 		self.__color = self.colorize(self.__x,self.__y) #0 means black, 1 means white
 		self.__neighbors = {"north" : None,"north-east": None,"east":None,"south-east":None,"south" : None,"south-west":None,"west":None,"north-west":None}
-		self.isThreatened = 0
+		self.isThreatened = [0,0] #0th index = black threatens, 1st index = white threatens
 
 	def __repr__(self):
-		if self.piece == None:
-			return "0|"
-		else:
-			return self.piece.__repr__()
-		#return self.label() + '|' + str(self.get_color()) + '|'
+		# if self.piece == None:
+		# 	return "0|"
+		# else:
+		# 	return self.piece.__repr__()
+		return self.label() + '|'
 
 	def _set_neighbors(self,N,NE,E,SE,S,SW,W,NW):
 		self.__neighbors["north"] = N
@@ -158,8 +174,11 @@ class Space:
 		self.__neighbors["west"] = W
 		self.__neighbors["north-west"] = NW
 
+	def connect_piece(self,Piece):
+		return 0
+
 	def colorize(self,x,y):
-		if x%2 == 1:
+		if x%2 == 0:
 			if y%2 == 0:
 				return 0
 			else:
@@ -169,6 +188,11 @@ class Space:
 				return 1
 			else:
 				return 0
+
+	def connect_piece(self,Piece): #returns the previous piece
+		ex_piece = self.piece
+		self.piece = Piece
+		return ex_piece
 
 	def get_x(self):
 		return self.__x
@@ -183,13 +207,13 @@ class Space:
 	def get_color(self):
 		return self.__color
 
-	def get_neighbors(Self):
+	def get_neighbors(self):
 		return self.__neighbors
 
 class Piece:
-	def __init__(self,x,y,Board):
-		self._vectors = {"Default" : [[None,None]]} #all vectors are relative to white's point of view with a1 at 0,0 
-		self._color = None #white:1 or black:0      #vectors are used to implement blocking
+	def __init__(self,x,y,Board,color):
+		self._vectors = {"Default" : 0} #all vectors are direction and magnitude, with north being 
+		self._color = color%2 #white:1 or black:0      #vectors are used to implement blocking
 		self._name = "Default"						#vectors are sorted from nearest move in a direction [0] to farthest [7]
 		self.__possible_moves = [[None,None]] #array of narrowed down moves for this piece
 		self._possible_attacks = self.__possible_moves #this is unaltered except for pawns
@@ -210,12 +234,19 @@ class Piece:
 		self._color = color
 		if self._isPawn:
 			if self._color == 0: #black pawn, different initialization than default
-				self.__possible_moves = [[self.space.get_x(),self.space.get_y()-2],[self.space.get_x(),self.space.get_y()-1]] 
-				self._possible_attacks = [[self.space.get_x()-1,self.space.get_y()-1],[self.space.get_x()+1,self.space.get_y()-1]]
-				self._vectors = {"north" : [[self.space.get_x(),self.space.get_y()-2],[self.space.get_x(),self.space.get_y()-1]]}
+				self._possible_moves = [Board.get_Space(self.space.get_x(),self.space.get_y()+2),Board.get_Space(self.space.get_x(),self.space.get_y()+1)]
+				self._possible_attacks = [Board.get_Space(self.space.get_x()-1,self.space.get_y()+1),Board.get_Space(self.space.get_x()+1,self.space.get_y()+1)]
+				self._vectors = {"south" : 1}
+
+	def connect_space(self,Space):
+		ex_space = Space.connect_piece(self)
+		return ex_space #returns space that it used to connect to
 
 	def get_color(self):
 		return self._color
+
+	def get_vectors(self):
+		return self._vectors
 
 	def get_name(self):
 		return self._name
@@ -226,36 +257,48 @@ class Piece:
 	def set_name(self,name):
 		self._name = name
 
-	def get_possible_moves(self,Board):
+	def get_possible_moves(self):
 		return self.__possible_moves
 
-	def update(self,Board): #narrows down the moves by searching for blocking among the vectors
-		#out of bounds
-		for i,move in enumerate(self.__possible_moves):
-			if not 1 <= move[0] <= 8:
-				del self._possible_moves[i]
-			if not 1 <= move[1] <= 8:
-				del self._possible_moves[i]
-		#TODO implement blocking
-		if self._name == "Knight":
-			#knights cant be blocked along their attack line
-			pass
-		else: #all pieces that can be blocked
-			if self._isPawn:
-				if num_moves > 0: #after the first move pawns can only move 1
-					if self._color == 0: #black
-						self.__possible_moves = [[self.space.get_x(),self.space.get_y()-1]]
-						self._vectors = {"south" : [[self.space.get_x(),self.space.get_y()-1]]}
-					else: #white
-						self.__possible_moves = [[self.space.get_x(),self.space.get_y()+1]]
-						self._vectors = {"north" : [[self.space.get_x(),self.space.get_y()+1]]}
-				elif num_moves == 1:
-					pass #rules for en-passant go here once movement is figured out
-			elif self._isKing:
-				#Kings cannot move to any threatened space, also castling
-				if num_moves > 0:
-					pass
-
+	def update(self): #sets the possible moves after moving using vectors
+		if self._name == "Knight": #knight can't be blocked
+			self.__possible()
+			return self
+		self.__possible_moves = []
+		for direction,magnitude in self._vectors.items():
+			print(direction,magnitude)
+			counter = 0
+			curSpace = self.space
+			beenBlocked = False
+			while counter < magnitude:
+				if curSpace == None: #we have hit the boundary, try a different direction
+					break
+				myNeighbors = curSpace.get_neighbors()
+				print("myNeighbors ",myNeighbors,"GOING ",direction," TO ",myNeighbors[direction])
+				myNeighbors[direction].isThreatened[self._color%2] += 1
+				checkSpace = myNeighbors[direction].occupied
+				if not beenBlocked: #if the piece hasn't been blocked we can still capture and move
+					if checkSpace: #there is a piece here
+						blocker = myNeighbors[direction].piece
+						if blocker.get_color() == self._color:
+							#the piece is the same color as mine and totally blocks it
+							beenBlocked = True
+							counter = magnitude
+							break #GOTO a different direction
+						if not beenBlocked:
+							#there is a piece here to capture, but that piece blocks my move past this location. However, I still threaten beyond this location
+							beenBlocked = True
+							self.__possible_moves.append(myNeighbors[direction])
+					else: #no piece here, can move
+						self.__possible_moves.append(myNeighbors[direction])
+				else: #we have been blocked by a piece not the same color as mine -> havent broken the loop. We cant attack or move but can still threaten until we meet a piece of the same color as mine
+					if checkSpace:
+						blocker = myNeighbors[direction].piece
+						if blocker.get_color() == self._color: #however now we have been blocked by a piece of the same color
+							counter = magnitude
+							break #GOTO a different direction
+				counter += 1
+				curSpace = self.space.get_neighbors()[direction] #points to next space in $direction
 		return self
 
 	def move(self,Board):
@@ -264,199 +307,147 @@ class Piece:
 			#if space
 
 class Pawn(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.__possible_moves = [[self.space.get_x(),self.space.get_y()+2],[self.space.get_x(),self.space.get_y()+1]] #default is initial white pawn
-		self._possible_attacks = [[self.space.get_x()+1,self.space.get_y()+1],[self.space.get_x()-1,self.space.get_y()+1]]
-		self._vectors = {"north" : [[self.space.get_x(),self.space.get_y()+2],[self.space.get_x(),self.space.get_y()+1]]}
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible_moves = [Board.get_Space(self.space.get_x(),self.space.get_y()-2),Board.get_Space(self.space.get_x(),self.space.get_y()-1)] #default is initial white pawn
+		self._possible_attacks = [Board.get_Space(self.space.get_x()+1,self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()-1)]
+		self._vectors = {"north" : 1}
 		self.set_name("Pawn")
-		self.isPawn = True #for promotion
+		self._isPawn = True #for promotion
+	
+	def __possible(self):
+		pass
 
 class King(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.possible()
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible(Board)
 		self.set_name("King")
 		self._isKing = True
 
-	def possible(self):
-		self.__possible_moves = [[self.space.get_x()+1,self.space.get_y()+1],[self.space.get_x()+1,self.space.get_y()],[self.space.get_x()+1,self.space.get_y()-1],[self.space.get_x(),self.space.get_y()-1],[self.space.get_x()-1,self.space.get_y()-1],[self.space.get_x()-1,self.space.get_y()],[self.space.get_x()-1,self.space.get_y()+1],[self.space.get_x(),self.space.get_y()+1]]
-		self._vectors = {	"north" : [[self.space.get_x(),self.space.get_y()+1]],
-							"north-east" : [[self.space.get_x()+1,self.space.get_y()+1]],
-							"east"	: [[self.space.get_x()+1,self.space.get_y()]],
-							"south-east" : [[self.space.get_x()+1,self.space.get_y()-1]],
-							"south" : [[self.space.get_x(),self.space.get_y()-1]],
-							"south-west" : [[self.space.get_x()-1,self.space.get_y()-1]],
-							"west" 	: [[self.space.get_x()-1,self.space.get_y()]],
-							"north-west" : [[self.space.get_x()-1,self.space.get_y()+1]]
+	def __possible(self,Board):
+		self.__possible_moves = [Board.get_Space(self.space.get_x()+1,self.space.get_y()+1),Board.get_Space(self.space.get_x()+1,self.space.get_y()),Board.get_Space(self.space.get_x()+1,self.space.get_y()-1),Board.get_Space(self.space.get_x(),self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()),Board.get_Space(self.space.get_x()-1,self.space.get_y()+1),Board.get_Space(self.space.get_x(),self.space.get_y()+1)]
+		self._vectors = {	"north" : 1,
+							"north-east" : 1,
+							"east"	: 1,
+							"south-east" : 1,
+							"south" : 1,
+							"south-west" : 1,
+							"west" 	: 1,
+							"north-west" : 1
 						}
 		#castling possibilities
 		if self._color == 0: #black
-			pass
+			self.__possible_moves.append(Board.get_Space_by_label("b8"))
+			self.__possible_moves.append(Board.get_Space_by_label("f8"))
 		else:
-			pass
+			self.__possible_moves.append(Board.get_Space_by_label("b1"))
+			self.__possible_moves.append(Board.get_Space_by_label("f1"))
 
 class Queen(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.possible()
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible()
 		self.set_name("Queen")
 
-	def possible(self):
-		self.__possible_moves = []
-		self._vectors = {	"north" : [],
-							"north-east" : [],
-							"east"	: [],
-							"south-east" : [],
-							"south" : [],
-							"south-west" : [],
-							"west" 	: [],
-							"north-west" : []
+	def __possible(self):
+		self._vectors = {	"north" : 8,
+							"north-east" : 8,
+							"east"	: 8,
+							"south-east" : 8,
+							"south" : 8,
+							"south-west" : 8,
+							"west" 	: 8,
+							"north-west" : 8
 						}
-		for i in range(8):
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()])
-			self._vectors["east"].append([self.space.get_x()+i,self.space.get_y()])
-
-			self.__possible_moves.append([self.space.get_x(),self.space.get_y()-i])
-			self._vectors["south"].append([self.space.get_x(),self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()+i])
-			self._vectors["north-east"].append([self.space.get_x()+i,self.space.get_y()+i])
-
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()-i])
-			self._vectors["south-east"].append([self.space.get_x()+i,self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()-i])
-			self._vectors["south-west"].append([self.space.get_x()-i,self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()])
-			self._vectors["west"].append([self.space.get_x()-i,self.space.get_y()])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()+i])
-			self._vectors["north-west"].append([self.space.get_x()-i,self.space.get_y()+i])
-
-			self.__possible_moves.append([self.space.get_x(),self.space.get_y()+i])
-			self._vectors["north"].append([self.space.get_x(),self.space.get_y()+i])
+		self.update()
 
 class Bishop(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.possible()
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible()
 		self.set_name("Bishop")
 
-	def possible(self):
-		self.__possible_moves = []
-		self._vectors = {	"north-east" : [],
-							"south-east" : [],
-							"south-west" : [],
-							"north-west" : []
+	def __possible(self):
+		self._vectors = {	"north-east" : 8,
+							"south-east" : 8,
+							"south-west" : 8,
+							"north-west" : 8
 						}
-		for i in range(8):
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()+i])
-			self._vectors["north-east"].append([self.space.get_x()+i,self.space.get_y()+i])
-
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()-i])
-			self._vectors["south-east"].append([self.space.get_x()+i,self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()-i])
-			self._vectors["south-west"].append([self.space.get_x()-i,self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()+i])
-			self._vectors["north-west"].append([self.space.get_x()-i,self.space.get_y()+i])
+		self.update()
 
 class Knight(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.possible()
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible()
 		self.set_name("Knight")
 
-	def possible(self):
-		self.__possible_moves = [[self.space.get_x()+1,self.space.get_y()+2],[self.space.get_x()-1,self.space.get_y()+2],[self.space.get_x()+1,self.space.get_y()-2],[self.space.get_x()-1,self.space.get_y()-2],[self.space.get_x()+2,self.space.get_y()+1],[self.space.get_x()+2,self.space.get_y()-1],[self.space.get_x()-2,self.space.get_y()+1],[self.space.get_x()-2,self.space.get_y()-1]]
-		self._vectors = { "north" : [[None,None]]} #knight cannot be blocked so vectors are irrelevant
+	def __possible(self):
+		self.__possible_moves = [Board.get_Space(self.space.get_x()+1,self.space.get_y()+2),Board.get_Space(self.space.get_x()-1,self.space.get_y()+2),Board.get_Space(self.space.get_x()+1,self.space.get_y()-2),Board.get_Space(self.space.get_x()-1,self.space.get_y()-2),Board.get_Space(self.space.get_x()+2,self.space.get_y()+1),Board.get_Space(self.space.get_x()+2,self.space.get_y()-1),Board.get_Space(self.space.get_x()-2,self.space.get_y()+1),Board.get_Space(self.space.get_x()-2,self.space.get_y()-1)]
+		self._vectors = { "north" : 0 } #knight cannot be blocked so vectors are irrelevant
 
 class Rook(Piece):
-	def __init__(self,x,y,Board):
-		Piece.__init__(self,x,y,Board)
-		self.possible()
+	def __init__(self,x,y,Board,color):
+		Piece.__init__(self,x,y,Board,color)
+		self.__possible()
 		self.set_name("Rook")
 
-	def possible(self):
-		self.__possible_moves = []
-		self._vectors = {	"north" : [],
-							"east"	: [],
-							"south" : [],
-							"west" 	: [],
+	def __possible(self):
+		self._vectors = {	"north" : 8,
+							"east"	: 8,
+							"south" : 8,
+							"west" 	: 8,
 						}
-		for i in range(8):
-			self.__possible_moves.append([self.space.get_x()+i,self.space.get_y()])
-			self._vectors["east"].append([self.space.get_x()+i,self.space.get_y()])
-
-			self.__possible_moves.append([self.space.get_x(),self.space.get_y()-i])
-			self._vectors["south"].append([self.space.get_x(),self.space.get_y()-i])
-
-			self.__possible_moves.append([self.space.get_x()-i,self.space.get_y()])
-			self._vectors["west"].append([self.space.get_x()-i,self.space.get_y()])
-
-			self.__possible_moves.append([self.space.get_x(),self.space.get_y()+i])
-			self._vectors["north"].append([self.space.get_x(),self.space.get_y()+i])
+		self.update()
 
 class Player():
 	def __init__(self,color,Board,begin=True):
 		if begin: #default initialization at turn 0
 			self.current_pieces = []
 			self.captured_pieces = [] #other player's pieces
-			if color%2 == 0:#white
-				self.__color = 1
-				for i in range(8):
-					newPawn = Pawn(i+1,2,Board)
-					newPawn.set_color(self.__color)
-					self.current_pieces.append(newPawn)
-					if i == 0 or i == 7:
-						newRook = Rook(i+1,1,Board)
-						newRook.set_color(self.__color)
-						self.current_pieces.append(newRook)
-					elif i == 1 or i == 6:
-						newKnight = Knight(i+1,1,Board)
-						newKnight.set_color(self.__color)
-						self.current_pieces.append(newKnight)
-					elif i == 2 or i == 5:
-						newBishop = Bishop(i+1,1,Board)
-						newBishop.set_color(self.__color)
-						self.current_pieces.append(newBishop)
-					elif i == 3:
-						newQueen = Queen(i+1,1,Board)
-						newQueen.set_color(self.__color)
-						self.current_pieces.append(newQueen)
-					else: #i == 4
-						newKing = King(i+1,1,Board)
-						newKing.set_color(self.__color)
-						self.current_pieces.append(newKing)
-			else: #black
+			if color%2 == 0:#black
 				self.__color = 0
 				for i in range(8):
-					newPawn = Pawn(i+1,7,Board)
+					newPawn = Pawn(i+1,2,Board,self.__color)
 					newPawn.set_color(self.__color)
 					self.current_pieces.append(newPawn)
 					if i == 0 or i == 7:
-						newRook = Rook(i+1,8,Board)
-						newRook.set_color(self.__color)
+						newRook = Rook(i+1,1,Board,self.__color)
 						self.current_pieces.append(newRook)
 					elif i == 1 or i == 6:
-						newKnight = Knight(i+1,8,Board)
-						newKnight.set_color(self.__color)
+						newKnight = Knight(i+1,1,Board,self.__color)
 						self.current_pieces.append(newKnight)
 					elif i == 2 or i == 5:
-						newBishop = Bishop(i+1,8,Board)
-						newBishop.set_color(self.__color)
+						newBishop = Bishop(i+1,1,Board,self.__color)
 						self.current_pieces.append(newBishop)
 					elif i == 4:
-						newQueen = Queen(i+1,8,Board)
-						newQueen.set_color(self.__color)
+						newQueen = Queen(i+1,1,Board,self.__color)
 						self.current_pieces.append(newQueen)
 					else: #i == 3
-						newKing = King(i+1,8,Board)
-						newKing.set_color(self.__color)
+						newKing = King(i+1,1,Board,self.__color)
 						self.current_pieces.append(newKing)
+			else: #white
+				self.__color = 1
+				for i in range(8):
+					newPawn = Pawn(i+1,7,Board,self.__color)
+					newPawn.set_color(self.__color)
+					self.current_pieces.append(newPawn)
+					if i == 0 or i == 7:
+						newRook = Rook(i+1,8,Board,self.__color)
+						self.current_pieces.append(newRook)
+					elif i == 1 or i == 6:
+						newKnight = Knight(i+1,8,Board,self.__color)
+						self.current_pieces.append(newKnight)
+					elif i == 2 or i == 5:
+						newBishop = Bishop(i+1,8,Board,self.__color)
+						self.current_pieces.append(newBishop)
+					elif i == 4:
+						newQueen = Queen(i+1,8,Board,self.__color)
+						self.current_pieces.append(newQueen)
+					else: #i == 3
+						newKing = King(i+1,8,Board,self.__color)
+						self.current_pieces.append(newKing)
+			Board.positions()
 		else: #it is not turn 0 so get positions from the Board
 			pass
 
@@ -469,9 +460,11 @@ class Game():
 		self.__board = Board()
 		self._player_one = Player(1,self.__board) #white
 		self._player_two = Player(2,self.__board) #black
+		print('1:',self._player_one.get_color(),'2:',self._player_two.get_color())
 		self._num_turns = 0
 		self._turns = [self.__board.positions()]
 		self.__db_init()
+		print(self.__board.get_positions())
 
 	def __repr__(self):
 		return self.__board.__repr__()
@@ -487,7 +480,7 @@ class Game():
 
 	def get_num_turns(self):
 		return self._num_turns
-	#establishing permanence of a game using the explicit model methods
+	#establishing permanence of a game using the Django model methods
 	def __db_init(self):
 		#TODO add read method to check if this game is already in the database
 		self._white_turns_db = []
@@ -549,3 +542,11 @@ class Turn(models.Model): #takes a server Board function object to create a curr
 		models.CharField(max_length = 2, blank = True), size= 10
 		)
 	king = models.CharField(max_length = 2, blank = True) #ie a1 or h1
+
+def get_nth_key(dictionary, n=0):
+    if n < 0:
+        n += len(dictionary)
+    for i, key in enumerate(dictionary.keys()):
+        if i == n:
+            return key
+    raise IndexError("dictionary index out of range") 
