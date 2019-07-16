@@ -64,3 +64,12 @@
 .blackColor{
 	color:rgb(139,69,19);
 }
+.data{
+	display:none;
+}
+.yellowHighlight{
+	background-color:yellow;
+}
+.blueHighlight{
+	background-color:blue;
+}

@@ -3,8 +3,7 @@ import requests, json
 from .models import Game
 
 def home(request):
-	#if request.session.get('current_game') == None:
-		#you just lost
+	#if request.session.get('current_game') == None
 	theGame = Game()
 	request.session["current_game"] = True
 	context = {
@@ -14,7 +13,8 @@ def home(request):
 			"P2" : theGame.get_p2(),
 			"Grid" : theGame.get_board().get_grid()
 		}
-	print('game: ',theGame)
+	#print('neighbors of', theGame.get_board().get_Space_by_label("f7"), ":",theGame.get_board().get_Space_by_label("f7").get_neighbors())
+	#print("Grid: ",theGame.get_board().get_grid())
 	myRender = render(request,"chess/home.html", context)
 	#else:
 		# #there is a game in session

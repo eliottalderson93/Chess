@@ -8,6 +8,7 @@
     <link rel="stylesheet" type="text/css" href="{% static 'chess/main.css' %}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="{% static 'chess/main.js' %}"></script>
+    <div style = "display:none"></div>
 </head>
 <body class = backgroundGray>
 	<section class = "hero">
@@ -30,15 +31,21 @@
 												{% if space.piece != None %}
 													{% if space.piece.get_color == 0%}
 													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg %}
-														<figure class = "image piece" id = "piece.get_name">
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
 															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
 														</figure>
 													{% endwith %}
 													{% endif %}
 													{% if space.piece.get_color == 1 %}
 													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
-														<figure class = "image piece" id = "piece.get_name">
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
 															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
 														</figure>
 													{% endwith %}
 													{% endif %}
@@ -55,15 +62,21 @@
 												{% if space.piece != None %}
 													{% if space.piece.get_color == 0%}
 													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg  %}
-														<figure class = "image piece" id = "piece.get_name">
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
 															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
 														</figure>
 													{% endwith %}
 													{% endif %}
 													{% if space.piece.get_color == 1 %}
 													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
-														<figure class = "image piece" id = "piece.get_name">
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
 															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
 														</figure>
 													{% endwith %}
 													{% endif %}

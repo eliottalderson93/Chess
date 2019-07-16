@@ -11,8 +11,8 @@
 	padding:0%;
 	border:0px;
 	display:inline-block;
-	padding-top:0.5%;
-	padding-left:0.5%;
+	padding-top:0%;
+	padding-left:0%;
 }
 .backgroundGray{
 	background-color:rgb(105,105,105);
@@ -63,4 +63,7 @@
 }
 .blackColor{
 	color:rgb(139,69,19);
+}
+.data{
+	display:none;
 }
