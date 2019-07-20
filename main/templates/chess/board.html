@@ -1,0 +1,76 @@
+{% load static %}
+<div class = "board">
+	{% for row in Grid %}
+						{% if row.1 != None %}
+							<div class = "chessRow">
+								{% for space in row %}
+									{% if space != None %}
+										{% if space.get_color == 1 %}
+											<div class = "chessSquare whiteSpace" id = "{{space.label}}">
+												{% if forloop.parentloop.counter == 9 %}
+												<!-- <p class = "colLabel blackColor">{{space.label.0}}</p> -->
+												{% endif %}
+												{% if forloop.counter == 2 %}
+												<!-- <p class = "rowLabel blackColor">{{space.label.1}} </p> -->
+												{% endif %}
+												{% if space.piece != None %}
+													{% if space.piece.get_color == 0%}
+													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
+															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
+														</figure>
+													{% endwith %}
+													{% endif %}
+													{% if space.piece.get_color == 1 %}
+													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
+															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
+														</figure>
+													{% endwith %}
+													{% endif %}
+												{% endif %}
+											</div>
+										{% else %}
+											<div class = "chessSquare blackSpace" id = "{{space.label}}">
+												{% if forloop.parentloop.counter == 9 %}
+												<!-- <p class = "colLabel whiteColor">{{space.label.0}}</p> -->
+												{% endif %}
+												{% if forloop.counter == 2 %}
+												<!-- <p class = "rowLabel whiteColor">{{space.label.1}} </p> -->
+												{% endif %}
+												{% if space.piece != None %}
+													{% if space.piece.get_color == 0%}
+													{% with "chess/black"|add:space.piece.get_name|add:".png" as thisPieceImg  %}
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
+															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
+														</figure>
+													{% endwith %}
+													{% endif %}
+													{% if space.piece.get_color == 1 %}
+													{% with "chess/white"|add:space.piece.get_name|add:".png" as thisPieceImg %}
+														<figure class = "image piece" id = "{{space.piece.get_name}}">
+															<img src = "{% static thisPieceImg %}">
+															{% for move in space.piece.get_possible_moves%}
+																<div class = "data" id = "{{move}}"></div>
+															{% endfor %}
+														</figure>
+													{% endwith %}
+													{% endif %}
+												{% endif %}
+											</div>
+										{% endif %}
+									{% endif %}
+								{% endfor %}
+							</div>
+						{% endif %}
+					{% endfor %}
+</div>

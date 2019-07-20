@@ -16,7 +16,7 @@ class Board:
 				elif k == 0 or k == 9:
 					new_space = None
 				else:
-					new_space = Space(i,k)	
+					new_space = Space(i,k)	#0,0 = 
 				row.append(new_space)
 			self.__grid.append(row)
 		self.__init_neighbors()
@@ -46,13 +46,13 @@ class Board:
 	def get_grid(self):
 		return self.__grid
 
-	def get_Space(self,x,y): #y from 1 to 8 counted by 1 = row 8, 2 = row 7, 3 = row 6
-		if not 1<=x<=8:		 #x from 1 to 8 counted by a, b, c, d, .... 
+	def get_Space(self,row,col): #y from 1 to 8 counted by 1 = row 8, 2 = row 7, 3 = row 6
+		if not 1<=row<=8:		 #x from 1 to 8 counted by 1 = a, 2 = b
 			return None
-		if not 1<=y<=8:
+		if not 1<=col<=8:
 			return None
-		trans_y = [None,8,7,6,5,4,3,2,1,None][y]
-		return self.__grid[trans_y][x]
+		trans_y = [None,8,7,6,5,4,3,2,1,None][col]
+		return self.__grid[row][col]
 
 	def get_Space_by_label(self,label):
 		check_letter = ['a','b','c','d','e','f','g','h']
@@ -66,7 +66,16 @@ class Board:
 					if label[1] == check_num[k]:
 						return self.get_Space(int(check_num[k]),i+1)
 		return None
-
+	#this function iterates over each space to find each piece and calculates all the possible moves that all the pieces can make, 
+	#taking the board and all the other pieces into account, and assigns the possible move list to that piece object
+	#update is overriden for pieces such as Pawns and Knights
+	def update(self): 
+		for row in self.__grid: #this is my most beautiful function
+			if row[1] != None:
+				for space in row:
+					if space != None:
+						if space.piece != None:
+							space.piece.update(self) #SO MUCH WORK to get this one line of code
 
 	def is_occupied(self,x,y):
 		if not 1<=x<=8:
@@ -97,7 +106,6 @@ class Board:
 				if space != None:
 					if space.piece != None:
 						if space.piece.get_color() == 0:
-							#print(space.label(),":",space.piece._isPawn,":",space.piece.get_name(),':',space.piece.get_color())
 							if space.piece._isPawn:
 								b_pawn_list.append(space.label())
 							elif space.piece._isKing:
@@ -111,7 +119,6 @@ class Board:
 							elif space.piece.get_name() == "Queen":
 								b_queen_list.append(space.label())
 						elif space.piece.get_color() == 1:
-							#print(space.label(),":",space.piece._isPawn,":",space.piece.get_name())
 							if space.piece._isPawn:
 								w_pawn_list.append(space.label())
 							elif space.piece._isKing:
@@ -148,13 +155,13 @@ class Board:
 
 class Space:
 	def __init__(self,x,y):
-		self.__x = x
-		self.__y = y
-		self.__number = [8,7,6,5,4,3,2,1][self.__x-1] #labels for the space
-		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__y-1)%8)]
+		self.__row = x
+		self.__col = y
+		self.__number = [8,7,6,5,4,3,2,1][self.__row-1] #labels for the space
+		self.__letter = ['a','b','c','d','e','f','g','h'][((self.__col-1)%8)]
 		self.occupied = False #is a piece here?
 		self.piece = None #names the Piece object occupying it
-		self.__color = self.colorize(self.__x,self.__y) #0 means black, 1 means white
+		self.__color = self.colorize(self.__row,self.__col) #0 means black, 1 means white
 		self.__neighbors = {"north" : None,"north-east": None,"east":None,"south-east":None,"south" : None,"south-west":None,"west":None,"north-west":None}
 		self.isThreatened = [0,0] #0th index = black threatens, 1st index = white threatens
 
@@ -196,11 +203,11 @@ class Space:
 		self.piece = Piece
 		return ex_piece
 
-	def get_x(self):
-		return self.__x
+	def get_row(self):
+		return self.__row
 
-	def get_y(self):
-		return self.__y
+	def get_col(self):
+		return self.__col
 
 	def label(self):
 		output = "" + self.__letter + str(self.__number)
@@ -215,7 +222,7 @@ class Space:
 	def occupy(self):
 		self.occupied = True
 
-	def arrive(self):
+	def leave(self):
 		self.occupied = False
 
 class Piece:
@@ -240,6 +247,9 @@ class Piece:
 
 	def set_color(self,color):
 		self._color = color
+
+	def castling(self,Board):
+		pass
 
 	def connect_space(self,Space):
 		ex_space = Space.connect_piece(self)
@@ -268,49 +278,45 @@ class Piece:
 
 	def add_possible_move(self,move_to_add):
 		self.__possible_moves.append(move_to_add)
-
-	def update(self): #sets the possible moves after moving using vectors
-		if self._name == "Knight": #knight can't be blocked
-			self.__possible()
-			return self
+	#this is the algorithm that determines whether a piece is blocked along a line of attack at each game state. Each piece calculates this on its own in regards to the board
+	#the possible moves are calculated using vectors, which is a dictionary for each piece that has a direction key and magnitude value
+	def update(self,Board): #sets the possible moves after moving using vectors
 		self.set_possible_moves([])
+		if self._name == "Knight": #knight can't be blocked
+			raise Exception('Knight did not update its moves correctly') #method is overriden anyway, excess of caution
+			return self
+		elif self._isPawn:
+			raise Exception('Pawn did not update its moves correctly') #method is overriden anyway, excess of caution
+			return self
+		elif self._isKing:
+			self.castling(Board)
 		for direction,magnitude in self._vectors.items():
-			print("-----------------GOING ",direction," FOR: ",magnitude,"-----------------------")
 			counter = 0
 			curSpace = self.space
 			beenBlocked = False
 			enemyPiece = False
 			while counter < magnitude:
 				if curSpace == None: #we have hit the boundary, try a different direction
-					print("I HIT THE BOUNDARY")
 					break
 				myNeighbors = curSpace.get_neighbors()
-				print("IM AT: ",curSpace,"\nGOING TO THE ",direction," SPACE BEING ",myNeighbors[direction])
 				if myNeighbors[direction] == None:
-					print("I HIT THE BOUNDARY")
 					break #hit the boundary
 				myNeighbors[direction].isThreatened[self._color%2] += 1
 				checkSpace = myNeighbors[direction].occupied
-				print("It is ",myNeighbors[direction].occupied," that there is a piece here")
 				if not beenBlocked: #if the piece hasn't been blocked we can still capture and move
-					print("I HAVENT BEEN BLOCKED YET, SO")
 					if checkSpace: #there is a piece here
 						blocker = myNeighbors[direction].piece
-						print("THERE IS A PIECE HERE: ",blocker,"colors:",blocker.get_color(),self.get_color())
 						if blocker.get_color() == self.get_color():
 							#the piece is the same color as mine and totally blocks it
-							print("THIS PIECE IS MINE, I HAVE BEEN BLOCKED")
 							beenBlocked = True
 							counter = magnitude
 							break #GOTO a different direction
 						else:
 							#there is a piece here to capture, but that piece blocks my move past this location. However, I still threaten beyond this location
-							print("THIS PIECE IS THE ENEMIES, I HAVE BEEN BLOCKED")
 							beenBlocked = True
 							enemyPiece = True
 							self.add_possible_move(myNeighbors[direction])
 					else: #no piece here, can move
-						print("THIS SPACE IS EMPTY")
 						self.add_possible_move(myNeighbors[direction])
 				if enemyPiece: #we have been blocked by a piece not the same color as mine -> havent broken the loop. We cant attack or move but can still threaten until we meet a piece of the same color as mine
 					if checkSpace:
@@ -319,31 +325,44 @@ class Piece:
 							counter = magnitude
 							break #GOTO a different direction
 				counter += 1
-				print("MOVING FROM: ",curSpace," TO ", curSpace.get_neighbors()[direction])
 				curSpace = curSpace.get_neighbors()[direction] #points to next space in $direction
-		print("MY FINAL POSSIBLE MOVES: ", self.get_possible_moves())
 		return self
 
 	def move(self,Board):
-		moves = []
-		#for space in self.get_possible_moves(): #space is an [x,y]
-			#if space
+		pass
 
 class Pawn(Piece):
 	def __init__(self,x,y,Board,color):
 		Piece.__init__(self,x,y,Board,color)
-		self.__possible_moves = [Board.get_Space(self.space.get_x(),self.space.get_y()-2),Board.get_Space(self.space.get_x(),self.space.get_y()-1)] #default is initial white pawn
-		self._possible_attacks = [Board.get_Space(self.space.get_x()+1,self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()-1)]
-		self._vectors = {"north" : 1}
 		self.set_name("Pawn")
 		self._isPawn = True #for promotion
-		if self._color == 0: #black pawn, different initialization than default
-			self._possible_moves = [Board.get_Space(self.space.get_x(),self.space.get_y()+2),Board.get_Space(self.space.get_x(),self.space.get_y()+1)]
-			self._possible_attacks = [Board.get_Space(self.space.get_x()-1,self.space.get_y()+1),Board.get_Space(self.space.get_x()+1,self.space.get_y()+1)]
-			self._vectors = {"south" : 1}
-	
+		
 	def __possible(self):
-		pass
+		pass #pawn's vectors needs to be more dynamic
+
+	def update(self,Board): #Pawn blocking works different since their move is unequivocally blocked by any piece, but their attacks are never blocked
+		self.set_possible_moves([])
+		vector_magnitude = 2
+		if self.num_moves > 0:
+			vector_magnitude = 1
+		if self._color == 0: #black pawn
+			i = 1
+			while i <= vector_magnitude: #moving forward
+				newSpace = Board.get_Space(self.space.get_row()+i,self.space.get_col())
+				if not newSpace.occupied:
+					self.add_possible_move(newSpace)
+				i += 1
+			self._possible_attacks = [Board.get_Space(self.space.get_row()+1,self.space.get_col()+1),Board.get_Space(self.space.get_row()+1,self.space.get_col()-1)]
+			self._vectors = {"south" : vector_magnitude}
+		else: #white pawn
+			i = 1
+			while i <= vector_magnitude: #moving forward
+				newSpace = Board.get_Space(self.space.get_row()-i,self.space.get_col())
+				if not newSpace.occupied:
+					self.add_possible_move(newSpace)
+				i += 1
+			self._possible_attacks = [Board.get_Space(self.space.get_row()-1,self.space.get_col()-1),Board.get_Space(self.space.get_row()-1,self.space.get_col()+1)]
+			self._vectors = {"north" : vector_magnitude}
 
 class King(Piece):
 	def __init__(self,x,y,Board,color):
@@ -351,9 +370,10 @@ class King(Piece):
 		self.__possible(Board)
 		self.set_name("King")
 		self._isKing = True
+		self.canCastleEast = False
+		self.canCastleWest = False
 
 	def __possible(self,Board):
-		self.__possible_moves = [Board.get_Space(self.space.get_x()+1,self.space.get_y()+1),Board.get_Space(self.space.get_x()+1,self.space.get_y()),Board.get_Space(self.space.get_x()+1,self.space.get_y()-1),Board.get_Space(self.space.get_x(),self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()-1),Board.get_Space(self.space.get_x()-1,self.space.get_y()),Board.get_Space(self.space.get_x()-1,self.space.get_y()+1),Board.get_Space(self.space.get_x(),self.space.get_y()+1)]
 		self._vectors = {	"north" : 1,
 							"north-east" : 1,
 							"east"	: 1,
@@ -364,12 +384,45 @@ class King(Piece):
 							"north-west" : 1
 						}
 		#castling possibilities
-		if self._color == 0: #black
-			self.__possible_moves.append(Board.get_Space_by_label("b8"))
-			self.__possible_moves.append(Board.get_Space_by_label("f8"))
-		else:
-			self.__possible_moves.append(Board.get_Space_by_label("b1"))
-			self.__possible_moves.append(Board.get_Space_by_label("f1"))
+	def castling(self,Board):
+		colARook = {}
+		colHRook = {}
+		self.canCastleEast = False
+		self.canCastlewest = False
+		if self.get_color() == 0 and self.num_moves == 0: #black King hasnt moved
+			colARook = Board.get_Space_by_label("a8").piece
+			colHRook = Board.get_Space_by_label("h8").piece
+			if colARook.get_name() == "Rook" and colARook.num_moves == 0: #rook hasnt moved
+				checkSpaceB = Board.get_Space_by_label("b8")
+				checkSpaceC = Board.get_Space_by_label("c8")
+				if checkSpaceB.piece == None and checkSpaceC.piece == None: #no pieces in the way
+					if checkSpaceB.isThreatened[1] == 0 and checkSpaceC.isThreatened[1] == 0: #no threats from white that king moves through
+						self.add_possible_move(Board.get_Space_by_label("b8"))
+						self.canCastleWest = True
+			elif colHRook.get_name() == "Rook" and colARook.num_moves == 0: #check for other rook
+				checkSpaceE = Board.get_Space_by_label("e8")
+				checkSpaceF = Board.get_Space_by_label("f8")
+				if checkSpaceE.piece == None and checkSpaceF.piece == None:
+					if checkSpaceE.isThreatened[1] == 0 and checkSpaceFisThreated[1] == 0:
+						self.add_possible_move(Board.get_Space_by_label("f8"))
+						self.canCastleEast = True
+		elif self.get_color() == 1 and self.num_moves == 0: #white king hasnt moved
+			colARook = Board.get_Space_by_label("a1").piece
+			colHRook = Board.get_Space_by_label("h1").piece
+			if colARook.get_name() == "Rook" and colARook.num_moves == 0: #rook hasnt moved
+				checkSpaceB = Board.get_Space_by_label("b1")
+				checkSpaceC = Board.get_Space_by_label("c1")
+				if checkSpaceB.piece == None and checkSpaceC.piece == None: #no pieces in the way
+					if checkSpaceB.isThreatened[0] == 0 and checkSpaceC.isThreatened[0] == 0: #no threats from black that king moves through
+						self.add_possible_move(Board.get_Space_by_label("b1"))
+						self.canCastleWest = True
+			elif colHRook.get_name() == "Rook" and colARook.num_moves == 0: #check for other rook
+				checkSpaceE = Board.get_Space_by_label("e1")
+				checkSpaceF = Board.get_Space_by_label("f1")
+				if checkSpaceE.piece == None and checkSpaceF.piece == None:
+					if checkSpaceE.isThreatened[0] == 0 and checkSpaceFisThreated[0] == 0:
+						self.add_possible_move(Board.get_Space_by_label("f1"))
+						self.canCastleEast = True
 
 class Queen(Piece):
 	def __init__(self,x,y,Board,color):
@@ -387,7 +440,6 @@ class Queen(Piece):
 							"west" 	: 8,
 							"north-west" : 8
 						}
-		self.update()
 
 class Bishop(Piece):
 	def __init__(self,x,y,Board,color):
@@ -401,25 +453,38 @@ class Bishop(Piece):
 							"south-west" : 8,
 							"north-west" : 8
 						}
-		self.update()
 
 class Knight(Piece):
 	def __init__(self,x,y,Board,color):
 		Piece.__init__(self,x,y,Board,color)
-		self.__possible(Board)
 		self.set_name("Knight")
 
 	def __possible(self,Board):
-		self.__possible_moves = [
-								Board.get_Space(self.space.get_x()+1,self.space.get_y()+2),
-								Board.get_Space(self.space.get_x()-1,self.space.get_y()+2),
-								Board.get_Space(self.space.get_x()+1,self.space.get_y()-2),
-								Board.get_Space(self.space.get_x()-1,self.space.get_y()-2),
-								Board.get_Space(self.space.get_x()+2,self.space.get_y()+1),
-								Board.get_Space(self.space.get_x()+2,self.space.get_y()-1),
-								Board.get_Space(self.space.get_x()-2,self.space.get_y()+1),
-								Board.get_Space(self.space.get_x()-2,self.space.get_y()-1)]
+		self.set_possible_moves([ #possible function call pattern here is different since Knight doesnt depend on vectors for updating
+								Board.get_Space(self.space.get_row()+1,self.space.get_col()+2),
+								Board.get_Space(self.space.get_row()-1,self.space.get_col()+2),
+								Board.get_Space(self.space.get_row()+1,self.space.get_col()-2),
+								Board.get_Space(self.space.get_row()-1,self.space.get_col()-2),
+								Board.get_Space(self.space.get_row()+2,self.space.get_col()+1),
+								Board.get_Space(self.space.get_row()+2,self.space.get_col()-1),
+								Board.get_Space(self.space.get_row()-2,self.space.get_col()+1),
+								Board.get_Space(self.space.get_row()-2,self.space.get_col()-1)])
 		self._vectors = { "north" : 0 } #knight cannot be blocked so vectors are irrelevant
+
+	def update(self,Board): #the update for Knight is much simpler without having to check for blocking pieces
+		self.__possible(Board)
+		actualMoves = []
+		for move in self.get_possible_moves():
+			#piece_here = None
+			if move == None:
+				pass #if the move is out of bounds
+			elif move.piece == None:
+				actualMoves.append(move) #there is no piece here, can move
+			elif move.piece.get_color() == self.get_color():
+				pass #if there is a piece here and its mine
+			else: #there is a piece here and its not mine
+				actualMoves.append(move)
+		self.set_possible_moves(actualMoves)
 
 class Rook(Piece):
 	def __init__(self,x,y,Board,color):
@@ -433,7 +498,6 @@ class Rook(Piece):
 							"south" : 8,
 							"west" 	: 8,
 						}
-		self.update()
 
 class Player():
 	def __init__(self,color,Board,begin=True):
@@ -443,44 +507,43 @@ class Player():
 			if color%2 == 0:#black
 				self.__color = 0
 				for i in range(8):
-					newPawn = Pawn(i+1,7,Board,self.__color)
+					newPawn = Pawn(2,i+1,Board,self.__color)
 					self.current_pieces.append(newPawn)
 					if i == 0 or i == 7:
-						newRook = Rook(i+1,8,Board,self.__color)
+						newRook = Rook(1,i+1,Board,self.__color)
 						self.current_pieces.append(newRook)
 					elif i == 1 or i == 6:
-						newKnight = Knight(i+1,8,Board,self.__color)
+						newKnight = Knight(1,i+1,Board,self.__color)
 						self.current_pieces.append(newKnight)
 					elif i == 2 or i == 5:
-						newBishop = Bishop(i+1,8,Board,self.__color)
+						newBishop = Bishop(1,i+1,Board,self.__color)
 						self.current_pieces.append(newBishop)
 					elif i == 4:
-						newQueen = Queen(i+1,8,Board,self.__color)
+						newQueen = Queen(1,i+1,Board,self.__color)
 						self.current_pieces.append(newQueen)
 					else: #i == 3
-						newKing = King(i+1,8,Board,self.__color)
+						newKing = King(1,i+1,Board,self.__color)
 						self.current_pieces.append(newKing)
 			else: #white
 				self.__color = 1
 				for i in range(8):
-					newPawn = Pawn(i+1,2,Board,self.__color)
+					newPawn = Pawn(7,i+1,Board,self.__color)
 					self.current_pieces.append(newPawn)
 					if i == 0 or i == 7:
-						newRook = Rook(i+1,1,Board,self.__color)
+						newRook = Rook(8,i+1,Board,self.__color)
 						self.current_pieces.append(newRook)
 					elif i == 1 or i == 6:
-						newKnight = Knight(i+1,1,Board,self.__color)
+						newKnight = Knight(8,i+1,Board,self.__color)
 						self.current_pieces.append(newKnight)
 					elif i == 2 or i == 5:
-						newBishop = Bishop(i+1,1,Board,self.__color)
+						newBishop = Bishop(8,i+1,Board,self.__color)
 						self.current_pieces.append(newBishop)
 					elif i == 4:
-						newQueen = Queen(i+1,1,Board,self.__color)
+						newQueen = Queen(8,i+1,Board,self.__color)
 						self.current_pieces.append(newQueen)
 					else: #i == 3
-						newKing = King(i+1,1,Board,self.__color)
+						newKing = King(8,i+1,Board,self.__color)
 						self.current_pieces.append(newKing)
-			Board.positions()
 		else: #it is not turn 0 so get positions from the Board
 			pass
 
@@ -493,8 +556,10 @@ class Game():
 		self.__board = Board()
 		self._player_one = Player(1,self.__board) #white
 		self._player_two = Player(2,self.__board) #black
+		self.__board.positions()
+		self.__board.update() #calls all the updates for the pieces
 		self._num_turns = 0
-		self._turns = [self.__board.positions()]
+		self._turns = [self.__board.get_positions()] #add to this as the game goes on
 		self.__db_init()
 		#print(self.__board.get_positions())
 
@@ -545,9 +610,21 @@ class Game():
 #permanent objects 
 #the saved data constitutes what we need to rebuild a game if a user went away or closed the browser
 #There is a table of Games. Games have many Players (Generally 2). Games have the number of Turns (each Turn composed of each player moving once) and whose turn it is.
-#Players have many Turns. Players have a color (white or black). Players have a number of Turns that they have moved.0
+#Players have many Turns. Players have a color (white or black). Players have a number of Turns that they have moved.
 #Turns have entries with the piece names and a list of the positions each piece is in.
-
+class turnManager(models.Manager):
+	def move_validator(self,postData):
+		errors = {}
+		if postData['piece'] not in ['pawn','knight','bishop','rook','queen','king']:
+			errors['piece'] = "piece not recognized"
+		if len(postData['square']) != 2:
+			errors['square'] = "not a square"
+		elif postData['square'][0] not in ['a','b','c','d','e','f','g','h']:
+			errors['square'] = "square letter not recognized"
+		elif postData['square'][1] not in ['1','2','3','4','5','6','7','8']:
+			errors['square'] = "square number not recognized"
+		return errors
+		
 class savedGame(models.Model):
 	numTurns = models.IntegerField(default = 0)
 	whoseTurn = models.BooleanField(default = True) #True = White, False = Black
@@ -556,7 +633,7 @@ class savedPlayer(models.Model):
 	color = models.IntegerField() #0 for black, 1 for white
 	Game = models.ForeignKey('savedGame',on_delete=models.CASCADE)
 
-class Turn(models.Model): #takes a server Board function object to create a current layout of the board
+class turn(models.Model): #takes a server Board function object to create a current layout of the board
 	Player = models.ForeignKey('savedPlayer',on_delete=models.CASCADE)
 	pawns = ArrayField(
 		models.CharField(max_length = 2,blank = True), size=8 #[a4,b6,d5,....]
@@ -581,4 +658,4 @@ def get_nth_key(dictionary, n=0):
     for i, key in enumerate(dictionary.keys()):
         if i == n:
             return key
-    raise IndexError("dictionary index out of range") 
+    raise IndexError("dictionary index out of range")

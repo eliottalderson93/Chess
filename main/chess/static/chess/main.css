@@ -67,9 +67,9 @@
 .data{
 	display:none;
 }
-.yellowHighlight{
+.potentialMove{
 	background-color:yellow;
 }
-.blueHighlight{
+.selectedPiece{
 	background-color:blue;
 }

@@ -21,5 +21,7 @@ from chess import views
 handler404 = 'chess.views.bad_request'
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('home/',views.home)
+    path('home/',views.home),
+    path('board/',views.playerTurn)
 ]
+
